@@ -1,0 +1,28 @@
+Name:                HedisTest
+Version:             0.1
+Synopsis:            A playground for testing the hedis package.
+Description:         HedisTest is just a simple executable for experimenting with the hedis package.
+Homepage:            https://github.com/quixoftic/HedisTest
+License:             BSD3
+License-file:        LICENSE
+Author:              Drew Hess <dhess-src@quixoftic.com>
+Maintainer:          Drew Hess <dhess-src@quixoftic.com>
+Copyright:           Copyright © 2012, Quixoftic, LLC <src@quixoftic.com>
+Category:            Database
+Build-type:          Simple
+Cabal-version:       >=1.6
+
+source-repository head
+  type:     git
+  location: https://github.com/quixoftic/HedisTest.git
+
+Executable hedistest
+           Hs-Source-Dirs:      src
+           Main-Is:             HedisTest.hs
+           Build-Depends:       hedis == 0.6,
+                                text,
+                                base >= 4.5.0.0 && < 5,
+                                bytestring,
+                                cmdargs >= 0.10 && < 0.11,
+                                network,
+                                transformers
