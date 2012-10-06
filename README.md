@@ -32,7 +32,7 @@ no garbage left on your disk).
 ## Running
 
 <pre>
-hedistoys 0.1
+hedistoys 0.2
 
 hedistoys [COMMAND] ... [OPTIONS]
   Experiments with the hedis package
