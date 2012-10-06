@@ -32,7 +32,7 @@ no garbage left on your disk).
 ## Running
 
 <pre>
-hedistoys 0.2
+hedistoys 0.3
 
 hedistoys [COMMAND] ... [OPTIONS]
   Experiments with the hedis package
@@ -48,18 +48,26 @@ hedistoys helloworld [OPTIONS]
 hedistoys helloworldtx [OPTIONS]
   Runs the 'get' part of the "hello world" toy in a Redis transaction.
 
-hedistoys get [OPTIONS]
-  'get' a non-existent key.
+hedistoys get [OPTIONS] KEYNAME
+  'get' the value of the provided key.
 
-hedistoys sadd [OPTIONS]
-  Add a single element to a set, print the number of elements in the set. Note:
-  not idempotent.
+hedistoys set [OPTIONS] KEYNAME VALUE
+  'set' the value of the provided key.
 
-hedistoys saddprime [OPTIONS]
+hedistoys sadd [OPTIONS] KEYNAME [VALUE ...]
+  Add one or more elements to a set, print the number of elements that were
+  added to the set.
+
+hedistoys saddprime [OPTIONS] KEYNAME [VALUE ...]
   Same as toy 4, but without 'do' notation.
 
-hedistoys testandset [OPTIONS]
-  Atomic test-and-set for getting/creating new keys.
+hedistoys smembers [OPTIONS] KEYNAME
+  Get the members of the given set.
+
+hedistoys testandset [OPTIONS] KEYNAME IDKEYNAME
+  Atomic test-and-set for getting/creating keys with unique, monotonically
+  increasing integer values. The next new key ID is stored in the key with name
+  IDKEYNAME.
 </pre>
 
 ## License

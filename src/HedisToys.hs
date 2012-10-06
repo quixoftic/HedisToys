@@ -21,36 +21,58 @@ import Data.Functor
 import Control.Applicative
 import Data.Maybe
 
-data HedisToys = HelloWorld {} |
-                 HelloWorldTx {} |
-                 Get {} |
-                 Sadd {} |
-                 SaddPrime {} |
-                 TestAndSet {}
-                 deriving (Typeable, Data, Eq, Show)
+data HedisToys = HelloWorld {} 
+               | HelloWorldTx {}
+               | Get { key :: String }
+               | Set_ { key :: String, val :: String }
+               | Sadd { key :: String, vals :: [String] }
+               | SaddPrime { key :: String, vals :: [String] }
+               | Smembers { key :: String }
+               | TestAndSet { key :: String, nextIDKey :: String }
+               deriving (Typeable, Data, Eq, Show)
                           
 helloWorld = record HelloWorld {} [] += help "A simple \"hello world\" toy, demonstrating how to use hedis 'get' and 'set', and the types returned by them."
 
 helloWorldTx = record HelloWorldTx {} [] += help "Runs the 'get' part of the \"hello world\" toy in a Redis transaction."
 
-get_ = record Get {} [] += help "'get' a non-existent key."
+get_ = record Get { key = def } [ key := def += argPos 0 += typ "KEYNAME"
+                                ] += help "'get' the value of the provided key."
 
-sadd_ = record Sadd {} [] += help "Add a single element to a set, print the number of elements in the set. Note: not idempotent."
+set_ = record Set_ { key = def 
+                   , val = def } [ key := def += argPos 0 += typ "KEYNAME"
+                                 , val := def += argPos 1 += typ "VALUE"
+                                 ] += help "'set' the value of the provided key."
 
-saddPrime = record SaddPrime {} [] += help "Same as toy 4, but without 'do' notation."
+sadd_ = record Sadd { key = def
+                    , vals = def } [ key := def += argPos 0 += typ "KEYNAME"
+                                   , vals := def += args += typ "VALUE ..."
+                                   ] += help "Add one or more elements to a set, print the number of elements that were added to the set."
 
-testAndSet = record TestAndSet {} [] += help "Atomic test-and-set for getting/creating new keys."
+smembers_ = record Smembers { key = def } [ key := def += argPos 0 += typ "KEYNAME"
+                                          ] += help "Get the members of the given set."
 
-mode = cmdArgsMode_ $ modes_ [helloWorld, helloWorldTx, get_, sadd_, saddPrime, testAndSet] += help "Experiments with the hedis package" += program "hedistoys" += summary ("hedistoys " ++ showVersion version)
+saddPrime = record SaddPrime { key = def
+                             , vals = def } [ key := def += argPos 0 += typ "KEYNAME"
+                                            , vals := def += args += typ "VALUE ..."
+                                            ] += help "Same as toy 4, but without 'do' notation."                                              
+
+testAndSet = record TestAndSet { key = def 
+                               , nextIDKey = def } [ key := def += argPos 0 += typ "KEYNAME" 
+                                                     , nextIDKey := def += argPos 1 += typ "IDKEYNAME"
+                                                     ] += help "Atomic test-and-set for getting/creating keys with unique, monotonically increasing integer values. The next new key ID is stored in the key with name IDKEYNAME."
+
+mode = cmdArgsMode_ $ modes_ [helloWorld, helloWorldTx, get_, set_, sadd_, saddPrime, smembers_, testAndSet] += help "Experiments with the hedis package" += program "hedistoys" += summary ("hedistoys " ++ showVersion version)
 
 main :: IO ()
 main = cmdArgsRun mode >>= \x -> case x of
   opts@HelloWorld {} -> runHelloWorld
   opts@HelloWorldTx {} -> runHelloWorldTx
-  opts@Get {} -> runGet
-  opts@Sadd {} -> runSadd >>= print
-  opts@SaddPrime {} -> runSaddPrime >>= print
-  opts@TestAndSet {} -> runTestAndSet >>= print
+  opts@Get {} -> runGet $ BS.pack $ key opts
+  opts@Set_ {} -> runSet (BS.pack $ key opts) (BS.pack $ val opts)
+  opts@Sadd {} -> runSadd (BS.pack $ key opts) (map BS.pack $ vals opts) >>= print
+  opts@SaddPrime {} -> runSaddPrime (BS.pack $ key opts) (map BS.pack $ vals opts) >>= print
+  opts@Smembers {} -> runSmembers (BS.pack $ key opts) >>= print
+  opts@TestAndSet {} -> runTestAndSet (BS.pack $ key opts) (BS.pack $ nextIDKey opts) >>= print
 
 runHelloWorld :: IO ()
 runHelloWorld = do
@@ -74,21 +96,28 @@ runHelloWorldTx = do
       return $ (,) <$> hello <*> world
     liftIO $ print helloworld
 
-runGet :: IO ()
-runGet = do
+runGet :: BS.ByteString -> IO ()
+runGet key = do
   conn <- connect defaultConnectInfo
   runRedis conn $ do
-    foobar <- get "foobar"
-    liftIO $ print foobar
+    val <- get key
+    liftIO $ print val
+
+runSet :: BS.ByteString -> BS.ByteString -> IO ()
+runSet key val = do
+  conn <- connect defaultConnectInfo
+  runRedis conn $ do
+    status <- set key val
+    liftIO $ print status
 
 -- The remaining toys demonstrate how to return values wrapped in IO.
 --
 
-runSadd :: IO (Integer)
-runSadd = do
+runSadd :: BS.ByteString -> [BS.ByteString] -> IO (Integer)
+runSadd key vals = do
   conn <- connect defaultConnectInfo
   runRedis conn $ do
-    Right result <- sadd "set1" ["a"]
+    Right result <- sadd key vals
     return result
 
 fromRight :: Either a b -> b
@@ -97,10 +126,17 @@ fromRight _ = error "fromRight: Left"
 
 -- Same as runSadd, but without 'do' notation. It's for the reader to
 -- judge whether it's "better" this way.
-runSaddPrime :: IO (Integer)
-runSaddPrime = do
+runSaddPrime :: BS.ByteString -> [BS.ByteString] -> IO (Integer)
+runSaddPrime key vals = do
   conn <- connect defaultConnectInfo
-  runRedis conn $ liftM fromRight $ sadd "set1" ["a"]
+  runRedis conn $ liftM fromRight $ sadd key vals
+
+runSmembers :: BS.ByteString -> IO ([BS.ByteString])
+runSmembers key = do
+  conn <- connect defaultConnectInfo
+  runRedis conn $ do
+    Right vals <- smembers key
+    return vals
 
 valueToInteger :: BS.ByteString -> Integer
 valueToInteger = fst . fromJust . BS.readInteger
@@ -109,17 +145,17 @@ integerToValue :: Integer -> BS.ByteString
 integerToValue = BS.pack . show
 
 -- Return the ID as an Integer.
-runTestAndSet :: IO (Integer)
-runTestAndSet = do
+runTestAndSet :: BS.ByteString -> BS.ByteString -> IO (Integer)
+runTestAndSet key nextIDKey = do
   conn <- connect defaultConnectInfo
   runRedis conn $ do
-    Right maybeID <- get "key1"
+    Right maybeID <- get key
     case maybeID of
       Just id -> return $ valueToInteger id
       Nothing -> do
-        Right newID <- incr "next.id"
-        Right reply <- setnx "key1" $ integerToValue newID
+        Right newID <- incr nextIDKey
+        Right reply <- setnx key $ integerToValue newID
         if reply
           then return newID
-          else do Right (Just id) <- get "key1"
+          else do Right (Just id) <- get key
                   return $ valueToInteger id
