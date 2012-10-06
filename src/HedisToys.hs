@@ -13,7 +13,7 @@
 import qualified Data.ByteString.Char8 as BS
 import Database.Redis
 import System.Console.CmdArgs
-import Paths_HedisTest (version)
+import Paths_HedisToys (version)
 import Data.Version (showVersion)
 import Control.Monad
 import Control.Monad.IO.Class
@@ -21,39 +21,39 @@ import Data.Functor
 import Control.Applicative
 import Data.Maybe
 
-data HedisTest = Test1 {} |
-                 Test2 {} |
-                 Test3 {} |
-                 Test4 {} |
-                 Test5 {} |
-                 Test6 {}
+data HedisToys = Toy1 {} |
+                 Toy2 {} |
+                 Toy3 {} |
+                 Toy4 {} |
+                 Toy5 {} |
+                 Toy6 {}
                  deriving (Typeable, Data, Eq, Show)
                           
-test1 = record Test1 {} [] += help "A simple \"hello world\" test, demonstrating how to use hedis 'get' and 'set', and the types returned by them."
+toy1 = record Toy1 {} [] += help "A simple \"hello world\" toy, demonstrating how to use hedis 'get' and 'set', and the types returned by them."
 
-test2 = record Test2 {} [] += help "Runs the 'get' part of the \"hello world\" test in a Redis transaction."
+toy2 = record Toy2 {} [] += help "Runs the 'get' part of the \"hello world\" toy in a Redis transaction."
 
-test3 = record Test3 {} [] += help "'get' a non-existent key."
+toy3 = record Toy3 {} [] += help "'get' a non-existent key."
 
-test4 = record Test4 {} [] += help "Add a single element to a set, print the number of elements in the set. Note: not idempotent."
+toy4 = record Toy4 {} [] += help "Add a single element to a set, print the number of elements in the set. Note: not idempotent."
 
-test5 = record Test5 {} [] += help "Same as test 4, but without 'do' notation."
+toy5 = record Toy5 {} [] += help "Same as toy 4, but without 'do' notation."
 
-test6 = record Test6 {} [] += help "Atomic test-and-set for getting/creating new keys."
+toy6 = record Toy6 {} [] += help "Atomic test-and-set for getting/creating new keys."
 
-mode = cmdArgsMode_ $ modes_ [test1, test2, test3, test4, test5, test6] += help "Test the hedis package" += program "hedistest" += summary ("hedistest " ++ showVersion version)
+mode = cmdArgsMode_ $ modes_ [toy1, toy2, toy3, toy4, toy5, toy6] += help "Experiments with the hedis package" += program "hedistoys" += summary ("hedistoys " ++ showVersion version)
 
 main :: IO ()
 main = cmdArgsRun mode >>= \x -> case x of
-  opts@Test1 {} -> runTest1
-  opts@Test2 {} -> runTest2
-  opts@Test3 {} -> runTest3
-  opts@Test4 {} -> runTest4 >>= print
-  opts@Test5 {} -> runTest5 >>= print
-  opts@Test6 {} -> runTest6 >>= print
+  opts@Toy1 {} -> runToy1
+  opts@Toy2 {} -> runToy2
+  opts@Toy3 {} -> runToy3
+  opts@Toy4 {} -> runToy4 >>= print
+  opts@Toy5 {} -> runToy5 >>= print
+  opts@Toy6 {} -> runToy6 >>= print
 
-runTest1 :: IO ()
-runTest1 = do
+runToy1 :: IO ()
+runToy1 = do
   conn <- connect defaultConnectInfo
   runRedis conn $ do
     set "hello" "hello"
@@ -62,8 +62,8 @@ runTest1 = do
     world <- get "world"
     liftIO $ print (hello,world)
 
-runTest2 :: IO ()
-runTest2 = do
+runToy2 :: IO ()
+runToy2 = do
   conn <- connect defaultConnectInfo
   runRedis conn $ do
     set "hello" "hello"
@@ -74,18 +74,18 @@ runTest2 = do
       return $ (,) <$> hello <*> world
     liftIO $ print helloworld
 
-runTest3 :: IO ()
-runTest3 = do
+runToy3 :: IO ()
+runToy3 = do
   conn <- connect defaultConnectInfo
   runRedis conn $ do
     foobar <- get "foobar"
     liftIO $ print foobar
 
--- The remaining tests demonstrate how to return values wrapped in IO.
+-- The remaining toys demonstrate how to return values wrapped in IO.
 --
 
-runTest4 :: IO (Integer)
-runTest4 = do
+runToy4 :: IO (Integer)
+runToy4 = do
   conn <- connect defaultConnectInfo
   runRedis conn $ do
     Right result <- sadd "set1" ["a"]
@@ -95,10 +95,10 @@ fromRight :: Either a b -> b
 fromRight (Right b) = b
 fromRight _ = error "fromRight: Left"
 
--- Same as runTest4, but without 'do' notation. It's for the reader to
+-- Same as runToy4, but without 'do' notation. It's for the reader to
 -- judge whether it's "better" this way.
-runTest5 :: IO (Integer)
-runTest5 = do
+runToy5 :: IO (Integer)
+runToy5 = do
   conn <- connect defaultConnectInfo
   runRedis conn $ liftM fromRight $ sadd "set1" ["a"]
 
@@ -109,8 +109,8 @@ integerToValue :: Integer -> BS.ByteString
 integerToValue = BS.pack . show
 
 -- Return the ID as an Integer.
-runTest6 :: IO (Integer)
-runTest6 = do
+runToy6 :: IO (Integer)
+runToy6 = do
   conn <- connect defaultConnectInfo
   runRedis conn $ do
     Right maybeID <- get "key1"
