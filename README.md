@@ -41,24 +41,24 @@ Common flags:
   -? --help     Display help message
   -V --version  Print version information
 
-hedistoys toy1 [OPTIONS]
+hedistoys helloworld [OPTIONS]
   A simple "hello world" toy, demonstrating how to use hedis 'get' and 'set',
   and the types returned by them.
 
-hedistoys toy2 [OPTIONS]
+hedistoys helloworldtx [OPTIONS]
   Runs the 'get' part of the "hello world" toy in a Redis transaction.
 
-hedistoys toy3 [OPTIONS]
+hedistoys get [OPTIONS]
   'get' a non-existent key.
 
-hedistoys toy4 [OPTIONS]
+hedistoys sadd [OPTIONS]
   Add a single element to a set, print the number of elements in the set. Note:
   not idempotent.
 
-hedistoys toy5 [OPTIONS]
+hedistoys saddprime [OPTIONS]
   Same as toy 4, but without 'do' notation.
 
-hedistoys toy6 [OPTIONS]
+hedistoys testandset [OPTIONS]
   Atomic test-and-set for getting/creating new keys.
 </pre>
 
