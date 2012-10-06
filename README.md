@@ -59,7 +59,7 @@ hedistoys sadd [OPTIONS] KEYNAME [VALUE ...]
   added to the set.
 
 hedistoys saddprime [OPTIONS] KEYNAME [VALUE ...]
-  Same as toy 4, but without 'do' notation.
+  Same as the sadd toy, but implemented without 'do' notation.
 
 hedistoys smembers [OPTIONS] KEYNAME
   Get the members of the given set.

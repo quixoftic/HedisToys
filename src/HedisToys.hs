@@ -54,7 +54,7 @@ smembers_ = record Smembers { key = def } [ key := def += argPos 0 += typ "KEYNA
 saddPrime = record SaddPrime { key = def
                              , vals = def } [ key := def += argPos 0 += typ "KEYNAME"
                                             , vals := def += args += typ "VALUE ..."
-                                            ] += help "Same as toy 4, but without 'do' notation."                                              
+                                            ] += help "Same as the sadd toy, but implemented without 'do' notation."                                              
 
 testAndSet = record TestAndSet { key = def 
                                , nextIDKey = def } [ key := def += argPos 0 += typ "KEYNAME" 
