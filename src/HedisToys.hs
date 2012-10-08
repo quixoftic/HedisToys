@@ -29,6 +29,7 @@ data HedisToys = HelloWorld {}
                | SaddPrime { key :: String, vals :: [String] }
                | Smembers { key :: String }
                | TestAndSet { key :: String, nextIDKey :: String }
+               | TestAndSetPrime { key :: String, nextIDKey :: String }
                deriving (Typeable, Data, Eq, Show)
                           
 helloWorld = record HelloWorld {} [] += help "A simple \"hello world\" toy, demonstrating how to use hedis 'get' and 'set', and the types returned by them."
@@ -61,7 +62,12 @@ testAndSet = record TestAndSet { key = def
                                                      , nextIDKey := def += argPos 1 += typ "IDKEYNAME"
                                                      ] += help "Atomic test-and-set for getting/creating keys with unique, monotonically increasing integer values. The next new key ID is stored in the key with name IDKEYNAME."
 
-mode = cmdArgsMode_ $ modes_ [helloWorld, helloWorldTx, get_, set_, sadd_, saddPrime, smembers_, testAndSet] += help "Experiments with the hedis package" += program "hedistoys" += summary ("hedistoys " ++ showVersion version)
+testAndSetPrime = record TestAndSetPrime { key = def
+                                         , nextIDKey = def } [ key := def += argPos 0 += typ "KEYNAME"
+                                                             , nextIDKey := def += argPos 1 += typ "IDKEYNAME"
+                                                             ] += help "Same as the testandset toy, but implemented independently of a particular RedisCtx context."
+
+mode = cmdArgsMode_ $ modes_ [helloWorld, helloWorldTx, get_, set_, sadd_, saddPrime, smembers_, testAndSet, testAndSetPrime] += help "Experiments with the hedis package" += program "hedistoys" += summary ("hedistoys " ++ showVersion version)
 
 main :: IO ()
 main = cmdArgsRun mode >>= \x -> case x of
@@ -73,6 +79,11 @@ main = cmdArgsRun mode >>= \x -> case x of
   opts@SaddPrime {} -> runSaddPrime (BS.pack $ key opts) (map BS.pack $ vals opts) >>= print
   opts@Smembers {} -> runSmembers (BS.pack $ key opts) >>= print
   opts@TestAndSet {} -> runTestAndSet (BS.pack $ key opts) (BS.pack $ nextIDKey opts) >>= print
+  opts@TestAndSetPrime {} -> do
+    conn <- connect defaultConnectInfo
+    runRedis conn $ do
+      id <- runTestAndSetPrime (BS.pack $ key opts) (BS.pack $ nextIDKey opts)
+      liftIO $ print id
 
 runHelloWorld :: IO ()
 runHelloWorld = do
@@ -159,3 +170,16 @@ runTestAndSet key nextIDKey = do
           then return newID
           else do Right (Just id) <- get key
                   return $ valueToInteger id
+
+runTestAndSetPrime :: BS.ByteString -> BS.ByteString -> Redis (Integer)
+runTestAndSetPrime key nextIDKey = do
+  Right maybeID <- get key
+  case maybeID of
+    Just id -> return $ valueToInteger id
+    Nothing -> do
+      Right newID <- incr nextIDKey
+      Right reply <- setnx key $ integerToValue newID
+      if reply
+        then return newID
+        else do Right (Just id) <- get key
+                return $ valueToInteger id
