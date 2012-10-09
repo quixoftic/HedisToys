@@ -32,7 +32,7 @@ no garbage left on your disk).
 ## Running
 
 <pre>
-hedistoys 0.3
+hedistoys 0.4
 
 hedistoys [COMMAND] ... [OPTIONS]
   Experiments with the hedis package
@@ -68,6 +68,10 @@ hedistoys testandset [OPTIONS] KEYNAME IDKEYNAME
   Atomic test-and-set for getting/creating keys with unique, monotonically
   increasing integer values. The next new key ID is stored in the key with name
   IDKEYNAME.
+
+hedistoys testandsetprime [OPTIONS] KEYNAME IDKEYNAME
+  Same as the testandset toy, but implemented independently of a particular
+  RedisCtx context.
 </pre>
 
 ## License
